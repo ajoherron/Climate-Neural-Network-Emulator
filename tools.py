@@ -8,11 +8,10 @@ from sklearn.model_selection import KFold
 from sklearn.metrics import mean_squared_error as mse
 from scipy.stats import distributions
 
-from data import normalize, input_for_training
+from data import normalize_data, reshape_training_input
 
 
 def train_single_model(model, criterion, optimizer, X_train_k, Y_train_k, epochs):
-    # def train_model(model, criterion, optimizer, X_train_k, Y_train_k, epochs):
     train_losses = []
     for epoch in tqdm(range(epochs)):
         model.train()
@@ -32,7 +31,6 @@ def train_single_model(model, criterion, optimizer, X_train_k, Y_train_k, epochs
 
 
 def format_predictions(m_pred_tensor, VARIABLE, X_test_xr, Y_test, SLIDER_LENGTH):
-    # def process_predictions(m_pred_tensor, VARIABLE, X_test_xr, Y_test, SLIDER_LENGTH):
     m_pred = xr.Dataset()
     if SLIDER_LENGTH == 1:
         m_pred_data = m_pred_tensor.reshape(
@@ -62,9 +60,6 @@ def format_predictions(m_pred_tensor, VARIABLE, X_test_xr, Y_test, SLIDER_LENGTH
 def train_model_k_fold(
     INPUT_LIST, VARIABLE, LEARNING_RATE, X_train_all, Y_train_all, EPOCHS, model
 ):
-    # def train_k_fold(
-    #    INPUT_LIST, VARIABLE, LEARNING_RATE, X_train_all, Y_train_all, EPOCHS, model
-    # ):
 
     criterion = nn.L1Loss()
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
@@ -89,10 +84,7 @@ def train_model_k_fold(
 def make_model_predictions(
     X_test, Y_test, model, INPUT_LIST, meanstd_inputs, SLIDER_LENGTH, VARIABLE
 ):
-    # def predict_model(
-    #     X_test, Y_test, model, INPUT_LIST, meanstd_inputs, SLIDER_LENGTH, VARIABLE
-    # ):
-    ## predict things
+    # Predict things
     X_test_norm = []
     m_pred_col = []
 
@@ -101,10 +93,15 @@ def make_model_predictions(
         for var in INPUT_LIST:
             var_dims = test_xr[var].dims
             test_xr = test_xr[INPUT_LIST].assign(
-                {var: (var_dims, normalize(test_xr[var].data, var, meanstd_inputs))}
+                {
+                    var: (
+                        var_dims,
+                        normalize_data(test_xr[var].data, var, meanstd_inputs),
+                    )
+                }
             )
 
-        X_test_np = input_for_training(test_xr, slider=SLIDER_LENGTH)
+        X_test_np = reshape_training_input(test_xr, slider=SLIDER_LENGTH)
         if SLIDER_LENGTH == 1:
             X_test_np = X_test_np[:, 0, :, :, :]
 
@@ -146,19 +143,6 @@ def generate_all_predictions(
     VARIABLE,
 ):
 
-    # def make_predictions(
-    #     X_test,
-    #     Y_test,
-    #     X_train,
-    #     Y_train,
-    #     model,
-    #     INPUT_LIST,
-    #     meanstd_inputs,
-    #     SLIDER_LENGTH,
-    #     RUN_ID_MS,
-    #     predict_model,
-    #     VARIABLE,
-    # ):
     # Make predictions on test data
     m_pred_col, y_true_col = predict_model(
         X_test,
@@ -221,7 +205,6 @@ def generate_all_predictions(
 
 
 def calculate_rmse(y_pred, y_test, VARIABLE):
-    # def RMSE(y_pred, y_test, VARIABLE):
     sq_diff = (y_pred[VARIABLE[0]] - y_test[VARIABLE[0]]) ** 2
     mean_sq_diff = np.mean(sq_diff)
     rmse = np.sqrt(mean_sq_diff)
@@ -229,12 +212,12 @@ def calculate_rmse(y_pred, y_test, VARIABLE):
 
 
 def compute_evaluation_metrics(Y_hat, Y_test, VARIABLE):
-    # def metrics(Y_hat, Y_test, VARIABLE):
+    # Calculate spatial RMSE
     Y_hat_slice_avg = Y_hat[VARIABLE[0]].sel(year=slice(2080, 2100)).mean(dim="year")
     Y_test_slice_avg = Y_test[VARIABLE[0]].sel(year=slice(2080, 2100)).mean(dim="year")
     spatial_RMSE = np.sqrt(mse(Y_hat_slice_avg, Y_test_slice_avg))
-    print(f"Spatial RMSE: {spatial_RMSE}")
 
+    # Calculate global RMSE
     axyp = xr.open_dataset(
         "/discover/nobackup/jmekus/E213SSP585/annE213SSP585bF40oQ40_2015-2100/ANN2100.aijE213SSP585bF40oQ40.nc"
     ).axyp
@@ -245,8 +228,6 @@ def compute_evaluation_metrics(Y_hat, Y_test, VARIABLE):
         dim={"lat", "lon"}
     ) / axyp.sum(dim={"lat", "lon"})
     global_RMSE = np.sqrt(mse(global_mean_pred, global_mean_test))
-    print(f"Global RMSE: {global_RMSE}")
-
     return spatial_RMSE, global_RMSE
 
 

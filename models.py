@@ -7,15 +7,12 @@ class ResNet18(nn.Module):
     def __init__(self, input_channels, output_channels):
         super(ResNet18, self).__init__()
         resnet = models.resnet18(pretrained=True)
-        # Change the first convolution layer to match the number of input channels
         resnet.conv1 = nn.Conv2d(
             input_channels, 64, kernel_size=7, stride=2, padding=3, bias=False
         )
-        # Remove the last fully connected layer of ResNet-18
         self.features = nn.Sequential(*list(resnet.children())[:-1])
-        # Define a new fully connected layer to match the output dimensions of the provided CNNModel
         self.fc = nn.Linear(resnet.fc.in_features, output_channels * 90 * 144)
-        self.output_channels = output_channels  # Store output_channels as an attribute
+        self.output_channels = output_channels
 
     def forward(self, x):
         x = self.features(x)
