@@ -7,7 +7,7 @@ def normalize_data(data, var, meanstd_dict):
     return (data - mean) / std
 
 
-def calculate_mean_std(INPUT_LIST, X_train):
+def calculate_mean_std(X_train, INPUT_LIST):
     meanstd_inputs = {}
     for var in INPUT_LIST:
         array = np.concatenate([X_train[i][var].data for i in range(len(X_train))])
@@ -15,7 +15,7 @@ def calculate_mean_std(INPUT_LIST, X_train):
     return meanstd_inputs
 
 
-def apply_normalization(X_train, X_test, INPUT_LIST, meanstd_inputs, normalize):
+def apply_normalization(X_train, X_test, meanstd_inputs, INPUT_LIST):
     X_train_norm = []
     for i, train_xr in enumerate(X_train):
         for var in INPUT_LIST:
@@ -72,8 +72,4 @@ def merge_training_data(X_train, Y_train, X_train_norm, VARIABLE, SLIDER_LENGTH)
         axis=0,
     )
     Y_train_all = Y_train_all[:, 0, :, :]  # Select the first channel
-
-    print(f"X_train dimensions: {X_train_all.shape}")
-    print(f"Y_train dimensions: {Y_train_all.shape}")
-
     return X_train_all, Y_train_all

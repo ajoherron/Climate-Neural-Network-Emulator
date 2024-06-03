@@ -30,7 +30,7 @@ def train_single_model(model, criterion, optimizer, X_train_k, Y_train_k, epochs
     return train_losses
 
 
-def format_predictions(m_pred_tensor, VARIABLE, X_test_xr, Y_test, SLIDER_LENGTH):
+def format_predictions(m_pred_tensor, X_test_xr, Y_test, VARIABLE, SLIDER_LENGTH):
     m_pred = xr.Dataset()
     if SLIDER_LENGTH == 1:
         m_pred_data = m_pred_tensor.reshape(
@@ -58,7 +58,7 @@ def format_predictions(m_pred_tensor, VARIABLE, X_test_xr, Y_test, SLIDER_LENGTH
 
 
 def train_model_k_fold(
-    INPUT_LIST, VARIABLE, LEARNING_RATE, X_train_all, Y_train_all, EPOCHS, model
+    X_train_all, Y_train_all, model, INPUT_LIST, VARIABLE, LEARNING_RATE, EPOCHS
 ):
 
     criterion = nn.L1Loss()
@@ -82,9 +82,9 @@ def train_model_k_fold(
 
 
 def make_model_predictions(
-    X_test, Y_test, model, INPUT_LIST, meanstd_inputs, SLIDER_LENGTH, VARIABLE
+    X_test, Y_test, model, meanstd_inputs, SLIDER_LENGTH, VARIABLE, INPUT_LIST
 ):
-    # Predict things
+    # Initialize lists
     X_test_norm = []
     m_pred_col = []
 
@@ -115,7 +115,7 @@ def make_model_predictions(
 
         # Process predictions
         m_pred = format_predictions(
-            m_pred_tensor, VARIABLE, test_xr, Y_test, SLIDER_LENGTH
+            m_pred_tensor, test_xr, Y_test, VARIABLE, SLIDER_LENGTH
         )
 
         # Append predictions to m_pred_col
@@ -135,63 +135,62 @@ def generate_all_predictions(
     X_train,
     Y_train,
     model,
-    INPUT_LIST,
     meanstd_inputs,
     SLIDER_LENGTH,
     RUN_ID_MS,
-    predict_model,
     VARIABLE,
+    INPUT_LIST,
 ):
 
     # Make predictions on test data
-    m_pred_col, y_true_col = predict_model(
+    m_pred_col, y_true_col = make_model_predictions(
         X_test,
         Y_test,
         model,
-        INPUT_LIST,
         meanstd_inputs,
         SLIDER_LENGTH,
         VARIABLE,
+        INPUT_LIST,
     )
 
     # Check predictions on SSP585 and SSP126
     if len(X_train) < len(RUN_ID_MS):  # ensemble averages
-        m_pred_col_585, y_true_col_585 = predict_model(
+        m_pred_col_585, y_true_col_585 = make_model_predictions(
             X_train[0:1],
             Y_train[0:1],
             model,
-            INPUT_LIST,
             meanstd_inputs,
             SLIDER_LENGTH,
             VARIABLE,
+            INPUT_LIST,
         )
-        m_pred_col_126, y_true_col_126 = predict_model(
+        m_pred_col_126, y_true_col_126 = make_model_predictions(
             X_train[1:2],
             Y_train[1:2],
             model,
-            INPUT_LIST,
             meanstd_inputs,
             SLIDER_LENGTH,
             VARIABLE,
+            INPUT_LIST,
         )
     else:  # non-averaged training
-        m_pred_col_585, y_true_col_585 = predict_model(
+        m_pred_col_585, y_true_col_585 = make_model_predictions(
             X_train[0:3],
             Y_train[0:3],
             model,
-            INPUT_LIST,
             meanstd_inputs,
             SLIDER_LENGTH,
             VARIABLE,
+            INPUT_LIST,
         )
-        m_pred_col_126, y_true_col_126 = predict_model(
+        m_pred_col_126, y_true_col_126 = make_model_predictions(
             X_train[3:6],
             Y_train[3:6],
             model,
-            INPUT_LIST,
             meanstd_inputs,
             SLIDER_LENGTH,
             VARIABLE,
+            INPUT_LIST,
         )
 
     return (
