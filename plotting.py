@@ -54,11 +54,11 @@ def global_timeseries_plot(Y_pred, Y_train, Y_test, VARIABLE):
     plt.legend()
     plt.grid()
 
-    
+
 def global_anomaly_plot(Y_pred, Y_test, p_value, VARIABLE):
 
     # Extract data for the average of 2080-2100
-    average_of_runs = Y_pred  # Assuming Y_pred is already defined
+    average_of_runs = Y_pred
     prediction_tsurf = average_of_runs
     prediction_tsurf_2080_2100 = prediction_tsurf.sel(year=slice(2080, 2100)).mean(
         dim="year"
@@ -85,15 +85,15 @@ def global_anomaly_plot(Y_pred, Y_test, p_value, VARIABLE):
         transform=ccrs.PlateCarree(),
         vmin=-1,
         vmax=1,
-        cmap='coolwarm',
-        cbar_kwargs={"label": 'mm/day'},
+        cmap="coolwarm",
+        cbar_kwargs={"label": "mm/day"},
     )
 
     # Figure out how to include this
     # Add coastlines
     # ax.coastlines()
 
-    plt.title('Global Emulator Anomalies')
-    plt.xlabel('Longitude')
-    plt.ylabel('Latitude')
+    plt.title("Global Emulator Anomalies")
+    plt.xlabel("Longitude")
+    plt.ylabel("Latitude")
     plt.show()
