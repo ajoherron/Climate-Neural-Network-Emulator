@@ -58,7 +58,7 @@ def format_predictions(m_pred_tensor, X_test_xr, Y_test, VARIABLE, SLIDER_LENGTH
 
 
 def train_model_k_fold(
-    X_train_all, Y_train_all, model, INPUT_LIST, VARIABLE, LEARNING_RATE, EPOCHS
+    X_train_all, Y_train_all, model, INPUT_LIST, VARIABLE, LEARNING_RATE, EPOCHS, NUM_FOLDS,
 ):
 
     criterion = nn.L1Loss()
@@ -66,8 +66,7 @@ def train_model_k_fold(
 
     # Initialize a list to store the training losses for each fold
     all_train_losses = []
-
-    kf = KFold(n_splits=2)
+    kf = KFold(n_splits=NUM_FOLDS)
     for train_index, val_index in kf.split(np.zeros(len(Y_train_all)), Y_train_all):
         X_train_k = X_train_all[train_index]
         Y_train_k = Y_train_all[train_index]
@@ -77,7 +76,6 @@ def train_model_k_fold(
             model, criterion, optimizer, X_train_k, Y_train_k, EPOCHS
         )
         all_train_losses.append(train_losses)
-
     return model, all_train_losses
 
 
@@ -93,12 +91,7 @@ def make_model_predictions(
         for var in INPUT_LIST:
             var_dims = test_xr[var].dims
             test_xr = test_xr[INPUT_LIST].assign(
-                {
-                    var: (
-                        var_dims,
-                        normalize_data(test_xr[var].data, var, meanstd_inputs),
-                    )
-                }
+                {var: (var_dims, normalize_data(test_xr[var].data, var, meanstd_inputs))}
             )
 
         X_test_np = reshape_training_input(test_xr, slider=SLIDER_LENGTH)
@@ -210,24 +203,40 @@ def calculate_rmse(y_pred, y_test, VARIABLE):
     return rmse.values
 
 
-def compute_evaluation_metrics(Y_hat, Y_test, VARIABLE):
-    # Calculate spatial RMSE
-    Y_hat_slice_avg = Y_hat[VARIABLE[0]].sel(year=slice(2080, 2100)).mean(dim="year")
-    Y_test_slice_avg = Y_test[VARIABLE[0]].sel(year=slice(2080, 2100)).mean(dim="year")
-    spatial_RMSE = np.sqrt(mse(Y_hat_slice_avg, Y_test_slice_avg))
+def calculate_spatial_rmse(Y_pred, Y_test, VARIABLE):
+    
+    # Select years for evaluation
+    years_slice = slice(2080, 2100)
+    
+    # Calculate averages
+    Y_pred_slice_avg = Y_pred[VARIABLE[0]].sel(year=years_slice).mean(dim="year")
+    Y_test_slice_avg = Y_test[VARIABLE[0]].sel(year=years_slice).mean(dim="year")
 
-    # Calculate global RMSE
-    axyp = xr.open_dataset(
-        "/discover/nobackup/jmekus/E213SSP585/annE213SSP585bF40oQ40_2015-2100/ANN2100.aijE213SSP585bF40oQ40.nc"
-    ).axyp
-    global_mean_pred = (Y_hat[VARIABLE[0]].sel(year=slice(2080, 2100)) * axyp).sum(
-        dim={"lat", "lon"}
-    ) / axyp.sum(dim={"lat", "lon"})
-    global_mean_test = (Y_test[VARIABLE[0]].sel(year=slice(2080, 2100)) * axyp).sum(
-        dim={"lat", "lon"}
-    ) / axyp.sum(dim={"lat", "lon"})
-    global_RMSE = np.sqrt(mse(global_mean_pred, global_mean_test))
-    return spatial_RMSE, global_RMSE
+    # RMSE calculation
+    spatial_RMSE = np.sqrt(mse(Y_pred_slice_avg, Y_test_slice_avg))
+    return spatial_RMSE
+
+
+def calculate_global_rmse(Y_pred, Y_test, VARIABLE):
+    
+    # Calculate weights based on the cosine of latitude
+    weights = np.cos(np.deg2rad(Y_pred.lat))
+    weights.name = "weights"
+
+    # Ensure weights are broadcasted correctly over latitude and longitude dimensions
+    weights_broadcasted = weights.broadcast_like(Y_pred)
+
+    # Select the years for comparison
+    years_slice = slice(2080, 2100)
+
+    # Calculate global means
+    global_mean_pred = (Y_pred.sel(year=years_slice) * weights_broadcasted).sum(dim=["lat", "lon"]) / weights_broadcasted.sum(dim=["lat", "lon"])
+    global_mean_test = (Y_test.sel(year=years_slice) * weights_broadcasted).sum(dim=["lat", "lon"]) / weights_broadcasted.sum(dim=["lat", "lon"])
+
+    # RMSE Calculation
+    global_RMSE = np.sqrt(mse(global_mean_pred['prec'].values, global_mean_test['prec'].values))
+    
+    return global_RMSE
 
 
 def t_test(diff_mean, diff_std, diff_num):
