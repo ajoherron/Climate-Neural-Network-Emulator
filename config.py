@@ -1,11 +1,15 @@
 # Type of model ('CNN', 'RESNET')
-# MODEL = 'RESNET'
+#MODEL = 'RESNET'
 MODEL = "CNN"
 
 # Model settings
-EPOCHS = 150
 SLIDER_LENGTH = 1
-LEARNING_RATE = 0.0005
+NUM_FOLDS = 2
+
+# Training duration / rate
+EPOCHS = 150
+LEARNING_RATE = 0.005 # CNN
+#LEARNING_RATE = 0.00005 # ResNet
 
 # Ensemble members, SSP experiments to include
 RUN_ID_MS = ["E213SSP585", "E213SSP245", "E213SSP126"]
