@@ -1,3 +1,4 @@
+import cartopy
 import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
@@ -6,7 +7,12 @@ import cartopy.crs as ccrs
 from tools import t_test
 
 
-def plot_training_loss(EPOCHS, all_train_losses):
+# Configuration for cartopy plots
+cartopy.config['data_dir'] = "/discover/nobackup/projects/jh_tutorials/JH_examples/JH_datafiles/Cartopy"
+cartopy.config['pre_existing_data_dir'] = "/discover/nobackup/projects/jh_tutorials/JH_examples/JH_datafiles/Cartopy"
+
+
+def plot_training_loss(all_train_losses, EPOCHS):
     plt.plot(range(EPOCHS), all_train_losses[0], label="Training Loss")
     plt.xlabel("Epoch")
     plt.ylabel("L1 Loss")
@@ -86,13 +92,13 @@ def global_anomaly_plot(Y_pred, Y_test, p_value, VARIABLE):
         vmin=-1,
         vmax=1,
         cmap="coolwarm",
-        cbar_kwargs={"label": "mm/day"},
+        cbar_kwargs={"label": "mm/day", "shrink": 0.75},
     )
 
-    # Figure out how to include this
     # Add coastlines
-    # ax.coastlines()
+    ax.coastlines()
 
+    # Formatting
     plt.title("Global Emulator Anomalies")
     plt.xlabel("Longitude")
     plt.ylabel("Latitude")
