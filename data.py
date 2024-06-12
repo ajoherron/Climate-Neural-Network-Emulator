@@ -21,12 +21,7 @@ def apply_normalization(X_train, X_test, meanstd_inputs, INPUT_LIST):
         for var in INPUT_LIST:
             var_dims = train_xr[var].dims
             train_xr = train_xr[INPUT_LIST].assign(
-                {
-                    var: (
-                        var_dims,
-                        normalize_data(train_xr[var].data, var, meanstd_inputs),
-                    )
-                }
+                {var: (var_dims, normalize_data(train_xr[var].data, var, meanstd_inputs))}
             )
         X_train_norm.append(train_xr)
     X_test_xr = X_test[0][INPUT_LIST]
@@ -61,7 +56,7 @@ def merge_training_data(X_train, Y_train, X_train_norm, VARIABLE, SLIDER_LENGTH)
         ],
         axis=0,
     )
-    X_train_all = X_train_all[:, 0, :, :, :]  # Select the first channel
+    X_train_all = X_train_all[:, 0, :, :, :]
 
     # Concatenate target data
     Y_train_all = np.concatenate(
@@ -71,5 +66,6 @@ def merge_training_data(X_train, Y_train, X_train_norm, VARIABLE, SLIDER_LENGTH)
         ],
         axis=0,
     )
-    Y_train_all = Y_train_all[:, 0, :, :]  # Select the first channel
+    Y_train_all = Y_train_all[:, 0, :, :]
     return X_train_all, Y_train_all
+
